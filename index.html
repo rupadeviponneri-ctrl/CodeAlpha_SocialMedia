@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeAlpha Social Connect</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background: #eef2f6; color: #1e293b; }
+        header { background: #4f46e5; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .layout { max-width: 900px; margin: 25px auto; display: grid; grid-template-columns: 1fr 2fr; gap: 20px; padding: 0 15px; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .avatar { width: 60px; height: 60px; background: #4f46e5; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; margin-bottom: 10px; }
+        textarea, input { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; margin-bottom: 10px; }
+        .btn { background: #4f46e5; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .btn-sm { padding: 5px 10px; font-size: 0.85rem; }
+        .post-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .post-actions { margin-top: 12px; padding-top: 10px; border-top: 1px solid #f1f5f9; display: flex; gap: 15px; }
+        .action-btn { background: none; border: none; color: #64748b; cursor: pointer; font-weight: 600; }
+        .liked { color: #e11d48; }
+        .comment-box { margin-top: 10px; background: #f8fafc; padding: 10px; border-radius: 6px; font-size: 0.9rem; }
+        @media(max-width: 700px) { .layout { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<header>
+    <h2>🌐 AlphaSocial</h2>
+    <span>Active User: <strong>Rupa Devi</strong></span>
+</header>
+
+<div class="layout">
+    <!-- Left Profile Sidebar -->
+    <div>
+        <div class="card" style="text-align: center;">
+            <div class="avatar" style="margin: 0 auto 10px;">RD</div>
+            <h3>Rupa Devi</h3>
+            <p style="color: #64748b; font-size: 0.9rem; margin: 5px 0;">Web Dev Intern @ CodeAlpha</p>
+            <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
+            <div style="display: flex; justify-content: space-around;">
+                <div><strong id="postCount">2</strong><br><small>Posts</small></div>
+                <div><strong id="followerCount">128</strong><br><small>Followers</small></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Feed Section -->
+    <div>
+        <div class="card">
+            <h4 style="margin-bottom: 10px;">Create a Post</h4>
+            <textarea id="postContent" rows="3" placeholder="What's on your mind, Rupa?"></textarea>
+            <button class="btn" onclick="createPost()">Post Update</button>
+        </div>
+
+        <div id="feedContainer"></div>
+    </div>
+</div>
+
+<script>
+    let posts = JSON.parse(localStorage.getItem('alphaPosts')) || [
+        {
+            id: 1,
+            author: "CodeAlpha Official",
+            time: "2 hours ago",
+            text: "Welcome to all our new interns! Build amazing projects and share your progress on LinkedIn.",
+            likes: 24,
+            isLiked: false,
+            following: true,
+            comments: ["Excited to start!", "Thank you for the opportunity!"]
+        },
+        {
+            id: 2,
+            author: "Rupa Devi",
+            time: "Just now",
+            text: "Building my mini social media platform using HTML, CSS, and JavaScript! 🚀",
+            likes: 12,
+            isLiked: true,
+            following: false,
+            comments: ["Great UI!"]
+        }
+    ];
+
+    function renderFeed() {
+        const container = document.getElementById('feedContainer');
+        document.getElementById('postCount').innerText = posts.filter(p => p.author === "Rupa Devi").length;
+        
+        container.innerHTML = posts.map(post => `
+            <div class="card">
+                <div class="post-header">
+                    <div>
+                        <strong>${post.author}</strong>
+                        <div style="font-size: 0.8rem; color: #64748b;">${post.time}</div>
+                    </div>
+                    ${post.author !== "Rupa Devi" ? 
+                        `<button class="btn btn-sm" style="background: ${post.following ? '#64748b' : '#4f46e5'}" onclick="toggleFollow(${post.id})">
+                            ${post.following ? 'Following' : '+ Follow'}
+                        </button>` : ''}
+                </div>
+                <p style="margin: 10px 0; line-height: 1.5;">${post.text}</p>
+                <div class="post-actions">
+                    <button class="action-btn ${post.isLiked ? 'liked' : ''}" onclick="toggleLike(${post.id})">
+                        ❤️ ${post.likes} Likes
+                    </button>
+                    <span style="color: #64748b; font-size: 0.9rem;">💬 ${post.comments.length} Comments</span>
+                </div>
+                <div class="comment-box">
+                    ${post.comments.map(c => `<div style="margin-bottom: 5px;"><strong>User:</strong> ${c}</div>`).join('')}
+                    <div style="display: flex; gap: 5px; margin-top: 8px;">
+                        <input type="text" id="comment-${post.id}" placeholder="Write a comment..." style="margin-bottom: 0; padding: 6px;">
+                        <button class="btn btn-sm" onclick="addComment(${post.id})">Send</button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function createPost() {
+        const textInput = document.getElementById('postContent');
+        const text = textInput.value.trim();
+        if (!text) {
+            alert("Please write something before posting!");
+            return;
+        }
+        
+        const newPost = {
+            id: Date.now(),
+            author: "Rupa Devi",
+            time: "Just now",
+            text: text,
+            likes: 0,
+            isLiked: false,
+            following: false,
+            comments: []
+        };
+        
+        posts.unshift(newPost);
+        textInput.value = "";
+        saveAndRender();
+    }
+
+    function toggleLike(id) {
+        const post = posts.find(p => p.id === id);
+        if (post) {
+            post.isLiked = !post.isLiked;
+            post.likes += post.isLiked ? 1 : -1;
+            saveAndRender();
+        }
+    }
+
+    function toggleFollow(id) {
+        const post = posts.find(p => p.id === id);
+        if (post) {
+            post.following = !post.following;
+            saveAndRender();
+        }
+    }
+
+    function addComment(id) {
+        const input = document.getElementById(`comment-${id}`);
+        const text = input.value.trim();
+        if (!text) return;
+        const post = posts.find(p => p.id === id);
+        if (post) {
+            post.comments.push(text);
+            saveAndRender();
+        }
+    }
+
+    function saveAndRender() {
+        localStorage.setItem('alphaPosts', JSON.stringify(posts));
+        renderFeed();
+    }
+
+    // Initial load
+    renderFeed();
+</script>
+</body>
+</html>
